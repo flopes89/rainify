@@ -15,7 +15,6 @@ namespace rainify.Plugin
         public string clientId = string.Empty;
         public string clientSecrect = string.Empty;
         public string refreshToken = string.Empty;
-
     }
 
     public class Plugin
@@ -23,36 +22,7 @@ namespace rainify.Plugin
         [DllExport]
         public static void Initialize(ref IntPtr data, IntPtr rm)
         {
-            Api api = rm;
-            api.Log(LogType.Debug, "Initializing rainify plugin");
-
-            try
-            {
-                string clientId = api.ReadString("ClientId", string.Empty);
-                string clientSecret = api.ReadString("ClientSecret", string.Empty);
-                string refreshToken = api.ReadString("RefreshToken", string.Empty);
-
-                if (string.IsNullOrWhiteSpace(clientId) ||
-                    string.IsNullOrWhiteSpace(clientSecret) ||
-                    string.IsNullOrWhiteSpace(refreshToken))
-                {
-                    api.Log(LogType.Error, "ClientId, ClientSecret and RefreshToken must be set. Use the console to generate them");
-                    return;
-                }
-
-                Measure measure = GCHandle.ToIntPtr(GCHandle.Alloc(new Measure()));
-                measure.clientId = clientId;
-                measure.clientSecrect = clientSecret;
-                measure.refreshToken = refreshToken;
-            }
-            catch (Exception exc)
-            {
-                api.Log(LogType.Error, exc.Message);
-            }
-            finally
-            {
-                api.Log(LogType.Debug, "Finished initialization");
-            }
+            data = GCHandle.ToIntPtr(GCHandle.Alloc(new Measure()));
         }
 
         [DllExport]
@@ -66,7 +36,25 @@ namespace rainify.Plugin
         {
             Api api = rm;
             Measure measure = data;
-            api.Log(LogType.Notice, "Reloading");
+            api.Log(LogType.Debug, "Reloading rainify plugin");
+            
+            string clientId = api.ReadString("ClientId", string.Empty);
+            string clientSecret = api.ReadString("ClientSecret", string.Empty);
+            string refreshToken = api.ReadString("RefreshToken", string.Empty);
+
+            if (string.IsNullOrWhiteSpace(clientId) ||
+                string.IsNullOrWhiteSpace(clientSecret) ||
+                string.IsNullOrWhiteSpace(refreshToken))
+            {
+                api.Log(LogType.Error, "ClientId, ClientSecret and RefreshToken must be set. Use the console to generate them");
+                return;
+            }
+
+            measure.clientId = clientId;
+            measure.clientSecrect = clientSecret;
+            measure.refreshToken = refreshToken;
+
+            api.Log(LogType.Debug, "Reload initialization");
         }
 
         [DllExport]
