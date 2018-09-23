@@ -3,11 +3,12 @@ using SpotifyAPI.Web.Auth;
 using SpotifyAPI.Web.Enums;
 using SpotifyAPI.Web.Models;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using static Rainmeter.Api;
 
-namespace rainify
+namespace rainify.Console
 {
     public class Facade
     {
@@ -89,7 +90,7 @@ namespace rainify
             Log(LogType.Debug, "Starting authorization process");
 
             auth.DoAuth();
-            
+
             var watch = new Stopwatch();
             watch.Start();
             while (token == null && watch.Elapsed < TimeSpan.FromSeconds(30))
@@ -111,7 +112,7 @@ namespace rainify
 
             return token;
         }
-        
+
         /// <summary>
         /// Refresh the playback data
         /// </summary>
@@ -130,7 +131,7 @@ namespace rainify
 
             Log(LogType.Debug, "Done refreshing playback data");
         }
-        
+
         /// <summary>
         /// Check if the current token data is valid and, if not, try to refresh them
         /// with the saved refresh token

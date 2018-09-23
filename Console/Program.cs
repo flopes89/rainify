@@ -1,10 +1,9 @@
 ﻿using CommandLine;
 using Newtonsoft.Json;
-using rainify;
 using System;
 using System.Windows.Forms;
 
-namespace Console
+namespace rainify.Console
 {
     class CommonOptions
     {
