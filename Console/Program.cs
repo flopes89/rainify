@@ -1,6 +1,6 @@
 ﻿using CommandLine;
 using Newtonsoft.Json;
-using RainmeterSpotifyPlugin;
+using rainify;
 using System;
 using System.Windows.Forms;
 

@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Threading;
 using static Rainmeter.Api;
 
-namespace RainmeterSpotifyPlugin
+namespace rainify
 {
     public class Facade
     {
