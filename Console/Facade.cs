@@ -3,7 +3,6 @@ using SpotifyAPI.Web.Auth;
 using SpotifyAPI.Web.Enums;
 using SpotifyAPI.Web.Models;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using static Rainmeter.Api;
@@ -12,11 +11,6 @@ namespace rainify.Console
 {
     public class Facade
     {
-        /// <summary>
-        /// Delegate for writing log messages (type, message, args)
-        /// </summary>
-        public static Action<string, string, string[]> WriteLogMessage;
-
         /// <summary>
         /// The current playback context
         /// </summary>
@@ -40,12 +34,31 @@ namespace rainify.Console
                 _playback = value;
             }
         }
-
         protected PlaybackContext _playback;
-        protected Token _token { get; set; }
+        
+        /// <summary>
+        /// Spotify Client ID
+        /// </summary>
         protected string _clientId { get; set; }
+
+        /// <summary>
+        /// Spotify Client Secret
+        /// </summary>
         protected string _clientSecret { get; set; }
+
+        /// <summary>
+        /// Access Token from the Spotify API
+        /// </summary>
+        protected Token _token { get; set; }
+
+        /// <summary>
+        /// Refresh Token from the Spotify API
+        /// </summary>
         protected string _refreshToken { get; set; }
+
+        /// <summary>
+        /// Spotify API reference
+        /// </summary>
         protected SpotifyWebAPI _api { get; set; }
 
         /// <summary>
@@ -166,7 +179,7 @@ namespace rainify.Console
         /// <param name="args">Arguments to use when formatting the message</param>
         protected static void Log(LogType type, string message, params string[] args)
         {
-            WriteLogMessage(type.ToString(), message, args);
+            System.Console.WriteLine(type.ToString(), message, args);
         }
     }
 }

@@ -8,6 +8,11 @@ namespace rainify.Plugin
     public class Plugin
     {
         /// <summary>
+        /// Static reference to the Rainmeter API
+        /// </summary>
+        static Api _api;
+
+        /// <summary>
         /// Called when a measure is created (i.e. when a skin is loaded or when a skin is refreshed).
         /// Create your measure object here. Any other initialization or code that only needs to happen once should be placed here.
         /// </summary>
@@ -16,22 +21,33 @@ namespace rainify.Plugin
         [DllExport]
         public static void Initialize(ref IntPtr data, IntPtr rm)
         {
-            Api api = rm;
-            api.Log(LogType.Debug, "Initializing rainify plugin");
+            _api = rm;
 
-            string parent = api.ReadString("ParentName", string.Empty);
-            BaseMeasure measure;
-            if (string.IsNullOrWhiteSpace(parent))
+            try
             {
-                measure = new ParentMeasure();
-            } else
-            {
-                measure = new ChildMeasure();
+                _api.Log(LogType.Debug, "Initializing plugin");
+                string parent = _api.ReadString("ParentName", string.Empty);
+                BaseMeasure measure;
+
+                if (string.IsNullOrWhiteSpace(parent))
+                {
+                    measure = new ParentMeasure(_api.Log);
+                }
+                else
+                {
+                    measure = new ChildMeasure(_api.Log);
+                }
+
+                data = GCHandle.ToIntPtr(GCHandle.Alloc(measure));
             }
-
-            data = GCHandle.ToIntPtr(GCHandle.Alloc(measure));
-            
-            api.Log(LogType.Debug, "Initialization done");
+            catch (Exception ex)
+            {
+                _api.Log(LogType.Error, ex.Message);
+            }
+            finally
+            {
+                _api.Log(LogType.Debug, "Initializing plugin done");
+            }
         }
 
         /// <summary>
@@ -45,13 +61,20 @@ namespace rainify.Plugin
         [DllExport]
         public static void Reload(IntPtr data, IntPtr rm, ref double maxValue)
         {
-            Api api = rm;
-            api.Log(LogType.Debug, "Reloading rainify plugin");
-
-            BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data).Target;
-            measure.Reload(rm, ref maxValue);
-
-            api.Log(LogType.Debug, "Reload done");
+            try
+            {
+                _api.Log(LogType.Debug, "Reloading plugin");
+                BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data).Target;
+                measure.Reload(rm, ref maxValue);
+            }
+            catch (Exception ex)
+            {
+                _api.Log(LogType.Error, ex.Message);
+            }
+            finally
+            {
+                _api.Log(LogType.Debug, "Reloading plugin done");
+            }
         }
 
         /// <summary>
@@ -63,8 +86,21 @@ namespace rainify.Plugin
         [DllExport]
         public static double Update(IntPtr data)
         {
-            BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data).Target;
-            return measure.Update();
+            try
+            {
+                _api.Log(LogType.Debug, "Updating plugin");
+                BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data).Target;
+                return measure.Update();
+            }
+            catch (Exception ex)
+            {
+                _api.Log(LogType.Error, ex.Message);
+                return 0;
+            }
+            finally
+            {
+                _api.Log(LogType.Debug, "Updating plugin done");
+            }
         }
 
         /// <summary>
@@ -81,8 +117,21 @@ namespace rainify.Plugin
         [DllExport]
         public static IntPtr GetString(IntPtr data)
         {
-            BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data).Target;
-            return Marshal.StringToHGlobalUni(measure.GetString());
+            try
+            {
+                _api.Log(LogType.Debug, "GetString called");
+                BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data).Target;
+                return Marshal.StringToHGlobalUni(measure.GetString());
+            }
+            catch (Exception ex)
+            {
+                _api.Log(LogType.Error, ex.Message);
+                return Marshal.StringToHGlobalUni(string.Empty);
+            }
+            finally
+            {
+                _api.Log(LogType.Debug, "GetString done");
+            }
         }
 
         /// <summary>
@@ -92,9 +141,21 @@ namespace rainify.Plugin
         [DllExport]
         public static void Finalize(IntPtr data)
         {
-            BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data).Target;
-            measure.Dispose();
-            GCHandle.FromIntPtr(data).Free();
+            try
+            {
+                _api.Log(LogType.Debug, "Finalizing plugin");
+                BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data).Target;
+                measure.Dispose();
+                GCHandle.FromIntPtr(data).Free();
+            }
+            catch (Exception ex)
+            {
+                _api.Log(LogType.Error, ex.Message);
+            }
+            finally
+            {
+                _api.Log(LogType.Debug, "Finalizing plugin done");
+            }
         }
     }
 }

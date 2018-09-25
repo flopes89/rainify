@@ -35,11 +35,6 @@ namespace rainify.Console
         {
             try
             {
-                Facade.WriteLogMessage += (string type, string message, string[] logArgs) =>
-                {
-                    Log(string.Format("[" + type + "] " + message, logArgs));
-                };
-
                 Parser.Default.ParseArguments<Authorize, Status>(args)
                     .MapResult(
                         (Authorize opts) => RunAuthorize(opts),
