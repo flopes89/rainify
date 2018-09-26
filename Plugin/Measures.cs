@@ -1,9 +1,7 @@
 ﻿using Rainmeter;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Reflection;
 using static Rainmeter.Api;
 
 namespace rainify.Plugin
@@ -27,17 +25,17 @@ namespace rainify.Plugin
         internal string Field = string.Empty;
 
         /// <summary>
-        /// Message to use for logging
+        /// Message function to use for logging
         /// </summary>
         internal protected Log _log;
 
         /// <summary>
         /// Base Measure instance
         /// </summary>
-        /// <param name="log_">Function to use for logging</param>
-        internal BaseMeasure(Log log_)
+        /// <param name="log">Function to use for logging</param>
+        internal BaseMeasure(Log log)
         {
-            _log = log_;
+            _log = log;
         }
 
         /// <summary>
@@ -175,6 +173,7 @@ namespace rainify.Plugin
 
             _log(LogType.Debug, "Executing console exe at [" + consoleExe.FullName + "]");
 
+            // TODO: Call console, parse output into Fields dictionary
             //var console = new Process()
             //{
             //    StartInfo = new ProcessStartInfo()

@@ -9,71 +9,23 @@ using static Rainmeter.Api;
 
 namespace rainify.Console
 {
-    public class Facade
+    /// <summary>
+    /// Facade to make talking with the Spotify Web API a bit easier
+    /// </summary>
+    class Facade
     {
         /// <summary>
-        /// The current playback context
+        /// Log delegate to use when logging messages
         /// </summary>
-        public PlaybackContext Playback
-        {
-            get
-            {
-                Log(LogType.Debug, "Accessing playback data");
+        /// <param name="type">Message type</param>
+        /// <param name="message">Log message</param>
+        internal delegate void Log(LogType type, string message);
 
-                if (_playback == null)
-                {
-                    Refresh();
-                }
-
-                return _playback;
-            }
-
-            protected set
-            {
-                Log(LogType.Debug, "Saving new playback data");
-                _playback = value;
-            }
-        }
-        protected PlaybackContext _playback;
+        /// <summary>
+        /// Function to use for logging
+        /// </summary>
+        internal static Log LogMessage;
         
-        /// <summary>
-        /// Spotify Client ID
-        /// </summary>
-        protected string _clientId { get; set; }
-
-        /// <summary>
-        /// Spotify Client Secret
-        /// </summary>
-        protected string _clientSecret { get; set; }
-
-        /// <summary>
-        /// Access Token from the Spotify API
-        /// </summary>
-        protected Token _token { get; set; }
-
-        /// <summary>
-        /// Refresh Token from the Spotify API
-        /// </summary>
-        protected string _refreshToken { get; set; }
-
-        /// <summary>
-        /// Spotify API reference
-        /// </summary>
-        protected SpotifyWebAPI _api { get; set; }
-
-        /// <summary>
-        /// Create a new facade to the spotify web api
-        /// </summary>
-        /// <param name="clientId">Spotify ClientId</param>
-        /// <param name="clientSecrect">Spotify ClientSecret</param>
-        /// <param name="refreshToken">Refresh token previously acquired by <see cref="Facade.GetToken()"/></param>
-        public Facade(string clientId, string clientSecrect, string refreshToken)
-        {
-            _clientId = clientId;
-            _clientSecret = clientSecrect;
-            _refreshToken = refreshToken;
-        }
-
         /// <summary>
         /// Fetch the initial token data using the given client id and secrect
         /// </summary>
@@ -81,11 +33,11 @@ namespace rainify.Console
         /// <param name="clientSecret">Spotify ClientSecret</param>
         /// <param name="port">Port to use for the postback from the authorization flow</param>
         /// <returns>The received token data</returns>
-        public static Token GetToken(string clientId, string clientSecret, int port = 80)
+        internal static Token GetToken(string clientId, string clientSecret, int port = 80)
         {
             Token token = null;
 
-            Log(LogType.Notice, "Getting new token data");
+            LogMessage(LogType.Notice, "Fetching new refresh token");
 
             var auth = new AutorizationCodeAuth()
             {
@@ -100,7 +52,7 @@ namespace rainify.Console
                 token = auth.ExchangeAuthCode(response.Code, clientSecret);
             };
 
-            Log(LogType.Debug, "Starting authorization process");
+            LogMessage(LogType.Debug, "Starting authorization process");
 
             auth.DoAuth();
 
@@ -108,7 +60,7 @@ namespace rainify.Console
             watch.Start();
             while (token == null && watch.Elapsed < TimeSpan.FromSeconds(30))
             {
-                Log(LogType.Debug, "Token not yet received, waiting...");
+                LogMessage(LogType.Debug, "Token not yet received, waiting...");
                 Thread.Sleep(1000);
             }
 
@@ -117,11 +69,11 @@ namespace rainify.Console
 
             if (token == null)
             {
-                Log(LogType.Error, "Could not acquire token data");
+                LogMessage(LogType.Error, "Could not acquire token data");
                 throw new Exception("Timeout: Could not acquire a token");
             }
 
-            Log(LogType.Debug, "Done getting token data");
+            LogMessage(LogType.Debug, "Done getting token data");
 
             return token;
         }
@@ -129,57 +81,38 @@ namespace rainify.Console
         /// <summary>
         /// Refresh the playback data
         /// </summary>
-        public void Refresh()
+        /// <param name="clientId">Spotify ClientId</param>
+        /// <param name="clientSecrect">Spotify ClientSecret</param>
+        /// <param name="refreshToken">Refresh token previously acquired by <see cref="Facade.GetToken()"/></param>
+        /// <returns>The current playback context</returns>
+        internal static PlaybackContext Refresh(string clientId, string clientSecret, string refreshToken)
         {
-            Log(LogType.Notice, "Refreshing playback data");
-            CheckToken();
-
-            Playback = _api.GetPlayback();
-
-            if (Playback.HasError())
+            LogMessage(LogType.Notice, "Getting new access token");
+            
+            var auth = new AutorizationCodeAuth()
             {
-                Log(LogType.Error, Playback.Error.Message);
-                return;
+                ClientId = clientId,
+            };
+
+            var token = auth.RefreshToken(refreshToken, clientSecret);
+            var api = new SpotifyWebAPI()
+            {
+                AccessToken = token.AccessToken,
+                TokenType = token.TokenType,
+            };
+
+            LogMessage(LogType.Debug, "Fetching new playback context");
+
+            var playback = api.GetPlayback();
+
+            if (playback.HasError())
+            {
+                throw new Exception(playback.Error.Message);
             }
 
-            Log(LogType.Debug, "Done refreshing playback data");
-        }
+            LogMessage(LogType.Debug, "Done refreshing playback data");
 
-        /// <summary>
-        /// Check if the current token data is valid and, if not, try to refresh them
-        /// with the saved refresh token
-        /// </summary>
-        protected void CheckToken()
-        {
-            if (_token == null || _token.IsExpired())
-            {
-                Log(LogType.Notice, "Access token is expired or has never been set, trying to refresh token");
-
-                var auth = new AutorizationCodeAuth()
-                {
-                    ClientId = _clientId,
-                };
-
-                _token = auth.RefreshToken(_refreshToken, _clientSecret);
-                _api = new SpotifyWebAPI()
-                {
-                    AccessToken = _token.AccessToken,
-                    TokenType = _token.TokenType,
-                };
-
-                Log(LogType.Debug, "Done refreshing token");
-            }
-        }
-
-        /// <summary>
-        /// Write a log message with the attached log writeres
-        /// </summary>
-        /// <param name="type">Log level</param>
-        /// <param name="message">Message</param>
-        /// <param name="args">Arguments to use when formatting the message</param>
-        protected static void Log(LogType type, string message, params string[] args)
-        {
-            System.Console.WriteLine(type.ToString(), message, args);
+            return playback;
         }
     }
 }

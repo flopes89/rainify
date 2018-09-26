@@ -5,6 +5,9 @@ using static Rainmeter.Api;
 
 namespace rainify.Plugin
 {
+    /// <summary>
+    /// Rainmeter plugin class
+    /// </summary>
     public class Plugin
     {
         /// <summary>
