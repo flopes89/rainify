@@ -15,9 +15,6 @@ namespace rainify.Console
 
         [Option('s', "clientSecret", Required = true, HelpText = "Your Spotify API ClientSecret")]
         public string ClientSecret { get; set; }
-
-        [Option('v', "verbose", Default = false, HelpText = "Print Log Messages")]
-        public bool Verbose { get; set; }
     }
 
     [Verb("auth", HelpText = "Authorize with SpotifyWebAPI to acquire the initial plugin settings")]
@@ -60,16 +57,8 @@ namespace rainify.Console
 
                 return Parser.Default.ParseArguments<Authorize, Status>(args_)
                     .MapResult(
-                        (Authorize opts) =>
-                        {
-                            _verbose = opts.Verbose;
-                            return RunAuthorize(opts);
-                        },
-                        (Status opts) =>
-                        {
-                            _verbose = opts.Verbose;
-                            return RunStatus(opts);
-                        },
+                        (Authorize opts) => RunAuthorize(opts),
+                        (Status opts) => RunStatus(opts),
                         errs => 1
                     );
             }
@@ -82,9 +71,6 @@ namespace rainify.Console
             finally
             {
                 Log(LogType.Debug, "Finished");
-#if DEBUG
-                System.Console.Read();
-#endif
             }
         }
         
@@ -138,10 +124,7 @@ namespace rainify.Console
         /// <param name="message">Message to log</param>
         static void Log(LogType type, string message)
         {
-            if (_verbose)
-            {
-                System.Console.WriteLine(type.ToString().PadLeft(7, ' ') + ": " + message);
-            }
+            System.Console.WriteLine(type.ToString().PadLeft(7, ' ') + ": " + message);
         }
 
         /// <summary>
@@ -174,7 +157,7 @@ namespace rainify.Console
                 {
                     foreach (var row in (Dictionary<string, string>)value)
                     {
-                        System.Console.WriteLine(prefix + name + "." + row.Key + "=" + row.Value);
+                        System.Console.WriteLine(prefix + name + "." + row.Key + "===" + row.Value);
                     }
                 }
                 else if (property.PropertyType == typeof(List<string>))
@@ -182,7 +165,7 @@ namespace rainify.Console
                     uint index = 0;
                     foreach (var row in (List<string>)value)
                     {
-                        System.Console.WriteLine(prefix + name + "." + index++ + "=" + row);
+                        System.Console.WriteLine(prefix + name + "." + index++ + "===" + row);
                     }
                 }
                 else if (property.PropertyType == typeof(List<SimpleArtist>) ||
@@ -196,7 +179,7 @@ namespace rainify.Console
                 }
                 else
                 {
-                    System.Console.WriteLine(prefix + name + "=" + value);
+                    System.Console.WriteLine(prefix + name + "===" + value);
                 }
             }
         }

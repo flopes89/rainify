@@ -46,6 +46,7 @@ namespace rainify.Plugin
             catch (Exception ex)
             {
                 _api.Log(LogType.Error, ex.Message);
+                _api.Log(LogType.Error, ex.StackTrace);
             }
             finally
             {
@@ -73,6 +74,7 @@ namespace rainify.Plugin
             catch (Exception ex)
             {
                 _api.Log(LogType.Error, ex.Message);
+                _api.Log(LogType.Error, ex.StackTrace);
             }
             finally
             {
@@ -98,6 +100,7 @@ namespace rainify.Plugin
             catch (Exception ex)
             {
                 _api.Log(LogType.Error, ex.Message);
+                _api.Log(LogType.Error, ex.StackTrace);
                 return 0;
             }
             finally
@@ -129,6 +132,7 @@ namespace rainify.Plugin
             catch (Exception ex)
             {
                 _api.Log(LogType.Error, ex.Message);
+                _api.Log(LogType.Error, ex.StackTrace);
                 return Marshal.StringToHGlobalUni(string.Empty);
             }
             finally
@@ -154,6 +158,7 @@ namespace rainify.Plugin
             catch (Exception ex)
             {
                 _api.Log(LogType.Error, ex.Message);
+                _api.Log(LogType.Error, ex.StackTrace);
             }
             finally
             {

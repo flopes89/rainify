@@ -1,7 +1,9 @@
 ﻿using Rainmeter;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using static Rainmeter.Api;
 
 namespace rainify.Plugin
@@ -142,12 +144,12 @@ namespace rainify.Plugin
             Name = api.GetMeasureName();
             Skin = api.GetSkin();
 
-            _log(LogType.Debug, "Reloading parent measure [" + Name + "] in Skin [" + Skin + "]");
+            _log(LogType.Notice, "Reloading parent measure [" + Name + "] in Skin [" + Skin + "]");
 
             _clientId = api.ReadString("ClientId", string.Empty);
             _clientSecret = api.ReadString("ClientSecret", string.Empty);
             _refreshToken = api.ReadString("RefreshToken", string.Empty);
-            _consolePath = api.ReadPath("ConsolePath", "Console.exe");
+            _consolePath = api.ReadPath("ConsolePath", "rainifyConsole.exe");
 
             if (string.IsNullOrWhiteSpace(_clientId) ||
                 string.IsNullOrWhiteSpace(_clientSecret) ||
@@ -172,26 +174,47 @@ namespace rainify.Plugin
             var consoleExe = new FileInfo(_consolePath);
 
             _log(LogType.Debug, "Executing console exe at [" + consoleExe.FullName + "]");
-
-            // TODO: Call console, parse output into Fields dictionary
-            //var console = new Process()
-            //{
-            //    StartInfo = new ProcessStartInfo()
-            //    {
-            //        FileName = consoleExe,
-            //        Arguments = string.Format("status -c {0} -s {1} -t {2}", ClientId, ClientSecret, RefreshToken),
-            //        CreateNoWindow = false,
-            //        RedirectStandardError = true,
-            //        RedirectStandardOutput = true
-            //    }
-            //};
-
-            //console.WaitForExit();
-
-            FieldValues["hello"] = new FieldValue()
+            
+            var console = new Process()
             {
-                StringValue = "world",
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = consoleExe.FullName,
+                    Arguments = string.Format("status -i {0} -s {1} -t {2}", _clientId, _clientSecret, _refreshToken),
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true
+                }
             };
+
+            console.Start();
+
+            var error = console.StandardError.ReadToEnd();
+            if (!string.IsNullOrWhiteSpace(error))
+            {
+                _log(LogType.Error, "Dumping rainifyConsole errors:\r\n" + error);
+            }
+
+            var output = console.StandardOutput.ReadToEnd();
+            console.WaitForExit();
+
+            var matches = Regex.Matches(output, "^(?<Name>.+)===(?<Value>.+)$", RegexOptions.Multiline);
+            FieldValues = new Dictionary<string, FieldValue>();
+            foreach (Match match in matches)
+            {
+                var name = match.Groups["Name"].Value;
+                var value = match.Groups["Value"].Value;
+
+                var fieldValue = new FieldValue();
+                fieldValue.StringValue = value;
+                var doubleValue = 0.0;
+                double.TryParse(value, out doubleValue);
+                fieldValue.DoubleValue = doubleValue;
+
+                _log(LogType.Debug, "Adding new FieldValue [" + name + "]");
+                FieldValues.Add(name, fieldValue);
+            }
 
             _log(LogType.Debug, "Reloading done");
         }
