@@ -149,7 +149,7 @@ namespace rainify.Plugin
             _clientId = api_.ReadString("ClientId", string.Empty);
             _clientSecret = api_.ReadString("ClientSecret", string.Empty);
             _refreshToken = api_.ReadString("RefreshToken", string.Empty);
-            _consolePath = api_.ReadPath("ConsolePath", "rainifyConsole.exe");
+            _consolePath = api_.ReadPath("ConsolePath", string.Empty);
 
             if (string.IsNullOrWhiteSpace(_clientId) ||
                 string.IsNullOrWhiteSpace(_clientSecret) ||

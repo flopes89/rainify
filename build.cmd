@@ -2,9 +2,11 @@
 setlocal
 
 rmdir /S /Q build\Plugin
-rmdir /S /Q build\Console
+rmdir /S /Q build\rainify\@Resources\Console
 
-msbuild rainify.sln /p:Configuration=Release /p:Platform=x64
-msbuild rainify.sln /p:Configuration=Release /p:Platform=x86
+set MSBUILD_ARGS=/property:Configuration=Release /nologo /verbosity:minimal
+
+msbuild rainify.sln %MSBUILD_ARGS% /property:Platform=x64
+msbuild rainify.sln %MSBUILD_ARGS% /property:Platform=x86
 
 endlocal
