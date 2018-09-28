@@ -37,11 +37,6 @@ namespace rainify.Console
     class Program
     {
         /// <summary>
-        /// Log verbose messages or not
-        /// </summary>
-        static bool _verbose { get; set; } = false;
-
-        /// <summary>
         /// Main program
         /// </summary>
         /// <param name="args_">CLI arguments</param>
@@ -97,14 +92,14 @@ namespace rainify.Console
         /// </summary>
         /// <param name="opts_">CLI arguments</param>
         /// <returns>1 for errors, 0 otherwise</returns>
-        static int RunAuthorize(Authorize opts)
+        static int RunAuthorize(Authorize opts_)
         {
             Log(LogType.Debug, "Authorizing with SpotifyWebAPI");
             
-            var token = Facade.GetToken(opts.ClientId, opts.ClientSecret, opts.Port);
+            var token = Facade.GetToken(opts_.ClientId, opts_.ClientSecret, opts_.Port);
             
-            string settings = "ClientId=" + opts.ClientId + "\r\n";
-            settings += "ClientSecret=" + opts.ClientSecret + "\r\n";
+            string settings = "ClientId=" + opts_.ClientId + "\r\n";
+            settings += "ClientSecret=" + opts_.ClientSecret + "\r\n";
             settings += "RefreshToken=" + token.RefreshToken + "\r\n";
             Clipboard.SetText(settings);
 
@@ -120,24 +115,25 @@ namespace rainify.Console
         /// <summary>
         /// Log a message to the console
         /// </summary>
-        /// <param name="type">Log level</param>
-        /// <param name="message">Message to log</param>
-        static void Log(LogType type, string message)
+        /// <param name="type_">Log level</param>
+        /// <param name="message_">Message to log</param>
+        static void Log(LogType type_, string message_)
         {
-            System.Console.WriteLine(type.ToString().PadLeft(7, ' ') + ": " + message);
+            System.Console.WriteLine(type_.ToString().PadLeft(7, ' ') + ": " + message_);
         }
 
         /// <summary>
         /// Dumps out all properties of an objects in Key=Value style
         /// Recurses into any property that is not a serializable type
         /// </summary>
-        /// <param name="obj">The object to dump</param>
-        static void Dump(object obj, string prefix = "")
+        /// <param name="obj_">The object to dump</param>
+        /// <param name="prefix_">Prefix for the name of the property</param>
+        static void Dump(object obj_, string prefix_ = "")
         {
-            foreach (var property in obj.GetType().GetProperties())
+            foreach (var property in obj_.GetType().GetProperties())
             {
                 string name = property.Name;
-                object value = property.GetValue(obj, null);
+                object value = property.GetValue(obj_, null);
                 
                 if (value == null)
                 {
@@ -151,13 +147,13 @@ namespace rainify.Console
                     property.PropertyType == typeof(LinkedFrom)
                     )
                 {
-                    Dump(value, prefix + name + ".");
+                    Dump(value, prefix_ + name + ".");
                 }
                 else if (property.PropertyType == typeof(Dictionary<string, string>))
                 {
                     foreach (var row in (Dictionary<string, string>)value)
                     {
-                        System.Console.WriteLine(prefix + name + "." + row.Key + "===" + row.Value);
+                        System.Console.WriteLine(prefix_ + name + "." + row.Key + "===" + row.Value);
                     }
                 }
                 else if (property.PropertyType == typeof(List<string>))
@@ -165,7 +161,7 @@ namespace rainify.Console
                     uint index = 0;
                     foreach (var row in (List<string>)value)
                     {
-                        System.Console.WriteLine(prefix + name + "." + index++ + "===" + row);
+                        System.Console.WriteLine(prefix_ + name + "." + index++ + "===" + row);
                     }
                 }
                 else if (property.PropertyType == typeof(List<SimpleArtist>) ||
@@ -174,12 +170,12 @@ namespace rainify.Console
                     uint index = 0;
                     foreach (var row in (IEnumerable)value)
                     {
-                        Dump(row, prefix + name + "." + index++ + ".");
+                        Dump(row, prefix_ + name + "." + index++ + ".");
                     }
                 }
                 else
                 {
-                    System.Console.WriteLine(prefix + name + "===" + value);
+                    System.Console.WriteLine(prefix_ + name + "===" + value);
                 }
             }
         }

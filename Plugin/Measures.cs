@@ -16,38 +16,38 @@ namespace rainify.Plugin
         /// <summary>
         /// Log delegate to use when logging messages
         /// </summary>
-        /// <param name="type">Message type</param>
-        /// <param name="message">Log message</param>
-        internal delegate void Log(LogType type, string message);
+        /// <param name="type_">Message type</param>
+        /// <param name="message_">Log message</param>
+        internal delegate void Log(LogType type_, string message_);
 
         /// <summary>
         /// The field that is used by the measure
         /// Fields itself are held by the ParentMeasure in a dictionary
         /// </summary>
-        internal string Field = string.Empty;
+        internal string Field { get; set; } = string.Empty;
 
         /// <summary>
         /// Message function to use for logging
         /// </summary>
-        internal protected Log _log;
+        internal protected Log _log { get; set; }
 
         /// <summary>
         /// Base Measure instance
         /// </summary>
-        /// <param name="log">Function to use for logging</param>
-        internal BaseMeasure(Log log)
+        /// <param name="log_">Function to use for logging</param>
+        internal BaseMeasure(Log log_)
         {
-            _log = log;
+            _log = log_;
         }
 
         /// <summary>
         /// <see cref="Plugin.Reload(IntPtr, IntPtr, ref double)"/>
         /// </summary>
-        /// <param name="api"><see cref="Plugin.Reload(IntPtr, IntPtr, ref double)"/></param>
-        /// <param name="max"><see cref="Plugin.Reload(IntPtr, IntPtr, ref double)"/></param>
-        internal virtual void Reload(Api api, ref double max)
+        /// <param name="api_"><see cref="Plugin.Reload(IntPtr, IntPtr, ref double)"/></param>
+        /// <param name="max_"><see cref="Plugin.Reload(IntPtr, IntPtr, ref double)"/></param>
+        internal virtual void Reload(Api api_, ref double max_)
         {
-            Field = api.ReadString("Field", string.Empty);
+            Field = api_.ReadString("Field", string.Empty);
         }
 
         /// <summary>
@@ -135,21 +135,21 @@ namespace rainify.Plugin
         /// <summary>
         /// <see cref="BaseMeasure.Reload(Api, ref double)"/>
         /// </summary>
-        /// <param name="api"><see cref="BaseMeasure.Reload(Api, ref double)"/></param>
-        /// <param name="max"><see cref="BaseMeasure.Reload(Api, ref double)"/></param>
-        internal override void Reload(Api api, ref double max)
+        /// <param name="api_"><see cref="BaseMeasure.Reload(Api, ref double)"/></param>
+        /// <param name="max_"><see cref="BaseMeasure.Reload(Api, ref double)"/></param>
+        internal override void Reload(Api api_, ref double max_)
         {
-            base.Reload(api, ref max);
+            base.Reload(api_, ref max_);
 
-            Name = api.GetMeasureName();
-            Skin = api.GetSkin();
+            Name = api_.GetMeasureName();
+            Skin = api_.GetSkin();
 
             _log(LogType.Notice, "Reloading parent measure [" + Name + "] in Skin [" + Skin + "]");
 
-            _clientId = api.ReadString("ClientId", string.Empty);
-            _clientSecret = api.ReadString("ClientSecret", string.Empty);
-            _refreshToken = api.ReadString("RefreshToken", string.Empty);
-            _consolePath = api.ReadPath("ConsolePath", "rainifyConsole.exe");
+            _clientId = api_.ReadString("ClientId", string.Empty);
+            _clientSecret = api_.ReadString("ClientSecret", string.Empty);
+            _refreshToken = api_.ReadString("RefreshToken", string.Empty);
+            _consolePath = api_.ReadPath("ConsolePath", "rainifyConsole.exe");
 
             if (string.IsNullOrWhiteSpace(_clientId) ||
                 string.IsNullOrWhiteSpace(_clientSecret) ||
@@ -175,9 +175,9 @@ namespace rainify.Plugin
 
             _log(LogType.Debug, "Executing console exe at [" + consoleExe.FullName + "]");
             
-            var console = new Process()
+            var console = new Process
             {
-                StartInfo = new ProcessStartInfo()
+                StartInfo = new ProcessStartInfo
                 {
                     FileName = consoleExe.FullName,
                     Arguments = string.Format("status -i {0} -s {1} -t {2}", _clientId, _clientSecret, _refreshToken),
@@ -206,8 +206,11 @@ namespace rainify.Plugin
                 var name = match.Groups["Name"].Value;
                 var value = match.Groups["Value"].Value;
 
-                var fieldValue = new FieldValue();
-                fieldValue.StringValue = value;
+                var fieldValue = new FieldValue
+                {
+                    StringValue = value
+                };
+
                 var doubleValue = 0.0;
                 double.TryParse(value, out doubleValue);
                 fieldValue.DoubleValue = doubleValue;
@@ -245,7 +248,7 @@ namespace rainify.Plugin
         /// <summary>
         /// The parent measure of this child
         /// </summary>
-        ParentMeasure ParentMeasure = null;
+        ParentMeasure _parentMeasure { get; set; } = null;
 
         /// <summary>
         /// Child Measure instance
@@ -259,27 +262,27 @@ namespace rainify.Plugin
         /// <summary>
         /// <see cref="BaseMeasure.Reload(Api, ref double)"/>
         /// </summary>
-        /// <param name="api"><see cref="BaseMeasure.Reload(Api, ref double)"/></param>
-        /// <param name="max"><see cref="BaseMeasure.Reload(Api, ref double)"/></param>
-        internal override void Reload(Api api, ref double max)
+        /// <param name="api_"><see cref="BaseMeasure.Reload(Api, ref double)"/></param>
+        /// <param name="max_"><see cref="BaseMeasure.Reload(Api, ref double)"/></param>
+        internal override void Reload(Api api_, ref double max_)
         {
-            base.Reload(api, ref max);
+            base.Reload(api_, ref max_);
             
-            var parentName = api.ReadString("ParentName", string.Empty);
-            var skin = api.GetSkin();
+            var parentName = api_.ReadString("ParentName", string.Empty);
+            var skin = api_.GetSkin();
 
-            _log(LogType.Debug, "Reloading child measure [" + api.GetMeasureName() + "] in Skin [" + skin + "]");
-            ParentMeasure = null;
+            _log(LogType.Debug, "Reloading child measure [" + api_.GetMeasureName() + "] in Skin [" + skin + "]");
+            _parentMeasure = null;
             foreach (ParentMeasure parent in ParentMeasure.Parents)
             {
                 if (parent.Skin.Equals(skin) && parent.Name.Equals(parentName))
                 {
-                    _log(LogType.Debug, "Found parent measure for [" + api.GetMeasureName() + "] in Skin [" + parent.Skin + "]: [" + parentName + "]");
-                    ParentMeasure = parent;
+                    _log(LogType.Debug, "Found parent measure for [" + api_.GetMeasureName() + "] in Skin [" + parent.Skin + "]: [" + parentName + "]");
+                    _parentMeasure = parent;
                 }
             }
 
-            if (ParentMeasure == null)
+            if (_parentMeasure == null)
             {
                 _log(LogType.Error, "Parent [" + parentName + "] not found in Skin [" + skin + "]");
             }
@@ -293,11 +296,11 @@ namespace rainify.Plugin
         /// <returns>Double value of the field</returns>
         internal override double Update()
         {
-            if (ParentMeasure != null)
+            if (_parentMeasure != null)
             {
-                if (ParentMeasure.FieldValues.ContainsKey(Field))
+                if (_parentMeasure.FieldValues.ContainsKey(Field))
                 {
-                    var value = ParentMeasure.FieldValues[Field];
+                    var value = _parentMeasure.FieldValues[Field];
                     return value.DoubleValue;
                 }
 
@@ -314,11 +317,11 @@ namespace rainify.Plugin
         /// <returns>String value of the field</returns>
         internal override string GetString()
         {
-            if (ParentMeasure != null)
+            if (_parentMeasure != null)
             {
-                if (ParentMeasure.FieldValues.ContainsKey(Field))
+                if (_parentMeasure.FieldValues.ContainsKey(Field))
                 {
-                    var value = ParentMeasure.FieldValues[Field];
+                    var value = _parentMeasure.FieldValues[Field];
                     return value.StringValue;
                 }
 

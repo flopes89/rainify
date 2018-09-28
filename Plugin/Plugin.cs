@@ -19,12 +19,12 @@ namespace rainify.Plugin
         /// Called when a measure is created (i.e. when a skin is loaded or when a skin is refreshed).
         /// Create your measure object here. Any other initialization or code that only needs to happen once should be placed here.
         /// </summary>
-        /// <param name="data">You may allocate and store measure specific data to this variable. The object you save here will be passed to other functions below.</param>
-        /// <param name="rm">Internal pointer that is passed to most API functions. If needed, you may save this value for later use (like for logging functions).</param>
+        /// <param name="data_">You may allocate and store measure specific data to this variable. The object you save here will be passed to other functions below.</param>
+        /// <param name="rm_">Internal pointer that is passed to most API functions. If needed, you may save this value for later use (like for logging functions).</param>
         [DllExport]
-        public static void Initialize(ref IntPtr data, IntPtr rm)
+        public static void Initialize(ref IntPtr data_, IntPtr rm_)
         {
-            _api = rm;
+            _api = rm_;
 
             try
             {
@@ -41,7 +41,7 @@ namespace rainify.Plugin
                     measure = new ChildMeasure(_api.Log);
                 }
 
-                data = GCHandle.ToIntPtr(GCHandle.Alloc(measure));
+                data_ = GCHandle.ToIntPtr(GCHandle.Alloc(measure));
             }
             catch (Exception ex)
             {
@@ -58,18 +58,18 @@ namespace rainify.Plugin
         /// Called by Rainmeter when the measure settings are to be read directly after Initialize.
         /// If DynamicVariables=1 is set on the measure, this function is called just before every call to the Update function during the update cycle.
         /// </summary>
-        /// <param name="data">Pointer to the data set in Initialize.</param>
-        /// <param name="rm">Internal pointer that is passed to most API functions.</param>
-        /// <param name="maxValue">Pointer to a double that can be assigned to the default maximum value for this measure.
+        /// <param name="data_">Pointer to the data set in Initialize.</param>
+        /// <param name="rm_">Internal pointer that is passed to most API functions.</param>
+        /// <param name="maxValue_">Pointer to a double that can be assigned to the default maximum value for this measure.
         /// A value of 0.0 will make it based on the highest value returned from the Update function. Do not set maxValue unless necessary.</param>
         [DllExport]
-        public static void Reload(IntPtr data, IntPtr rm, ref double maxValue)
+        public static void Reload(IntPtr data_, IntPtr rm_, ref double maxValue_)
         {
             try
             {
                 _api.Log(LogType.Debug, "Reloading plugin");
-                BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data).Target;
-                measure.Reload(rm, ref maxValue);
+                BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data_).Target;
+                measure.Reload(rm_, ref maxValue_);
             }
             catch (Exception ex)
             {
@@ -85,16 +85,16 @@ namespace rainify.Plugin
         /// <summary>
         /// Called by Rainmeter when a measure value is to be updated (i.e. on each update cycle). The number returned represents the number value of the measure.
         /// </summary>
-        /// <param name="data">Pointer to the data set in Initialize.</param>
+        /// <param name="data_">Pointer to the data set in Initialize.</param>
         /// <returns>The number value of the measure (as a double).
         /// This value will be used as the string value of the measure if the GetString function is not used or returns a null.</returns>
         [DllExport]
-        public static double Update(IntPtr data)
+        public static double Update(IntPtr data_)
         {
             try
             {
                 _api.Log(LogType.Debug, "Updating plugin");
-                BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data).Target;
+                BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data_).Target;
                 return measure.Update();
             }
             catch (Exception ex)
@@ -117,16 +117,16 @@ namespace rainify.Plugin
         /// a string variable there and retrieve that string variable in this function.
         /// The return value must be marshalled from a C# style string to a C style string (WCHAR*).
         /// </summary>
-        /// <param name="data">Pointer to the data set in Initialize.</param>
+        /// <param name="data_">Pointer to the data set in Initialize.</param>
         /// <returns>The string value for the measure. If you want the number value (returned from Update) to be used
         /// as the measures value, return null instead. The return value must be marshalled.</returns>
         [DllExport]
-        public static IntPtr GetString(IntPtr data)
+        public static IntPtr GetString(IntPtr data_)
         {
             try
             {
                 _api.Log(LogType.Debug, "GetString called");
-                BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data).Target;
+                BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data_).Target;
                 return Marshal.StringToHGlobalUni(measure.GetString());
             }
             catch (Exception ex)
@@ -144,16 +144,16 @@ namespace rainify.Plugin
         /// <summary>
         /// Called by Rainmeter when a measure is about to be destroyed. Perform cleanup here.
         /// </summary>
-        /// <param name="data">Pointer to the data set in Initialize.</param>
+        /// <param name="data_">Pointer to the data set in Initialize.</param>
         [DllExport]
-        public static void Finalize(IntPtr data)
+        public static void Finalize(IntPtr data_)
         {
             try
             {
                 _api.Log(LogType.Debug, "Finalizing plugin");
-                BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data).Target;
+                BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data_).Target;
                 measure.Dispose();
-                GCHandle.FromIntPtr(data).Free();
+                GCHandle.FromIntPtr(data_).Free();
             }
             catch (Exception ex)
             {
