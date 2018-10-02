@@ -4,9 +4,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using static Rainmeter.Api;
 
-namespace rainify.Console
+namespace Console
 {
     class CommonOptions
     {
@@ -103,7 +102,7 @@ namespace rainify.Console
             settings += "RefreshToken=" + token.RefreshToken + "\r\n";
             Clipboard.SetText(settings);
 
-            System.Console.WriteLine("Token received. Set the following settings in the parent measure:");
+            System.Console.WriteLine("Token received. Set the following settings in your web parser parent measure:");
             System.Console.WriteLine("---");
             System.Console.WriteLine(settings);
             System.Console.WriteLine("---");
@@ -134,7 +133,9 @@ namespace rainify.Console
             {
                 string name = property.Name;
                 object value = property.GetValue(obj_, null);
-                
+
+                Log(LogType.Debug, "Dumping property [" + name + "] with string value [" + value + "]");
+
                 if (value == null)
                 {
                     continue;
@@ -147,26 +148,30 @@ namespace rainify.Console
                     property.PropertyType == typeof(LinkedFrom)
                     )
                 {
+                    Log(LogType.Debug, "Dumping simple object [" + prefix_ + name + "]");
                     Dump(value, prefix_ + name + ".");
                 }
                 else if (property.PropertyType == typeof(Dictionary<string, string>))
                 {
+                    Log(LogType.Debug, "Dumping dictionary [" + prefix_ + name + "]");
                     foreach (var row in (Dictionary<string, string>)value)
                     {
                         System.Console.WriteLine(prefix_ + name + "." + row.Key + "===" + row.Value);
                     }
                 }
-                else if (property.PropertyType == typeof(List<string>))
-                {
-                    uint index = 0;
-                    foreach (var row in (List<string>)value)
-                    {
-                        System.Console.WriteLine(prefix_ + name + "." + index++ + "===" + row);
-                    }
-                }
+                //else if (property.PropertyType == typeof(List<string>))
+                //{
+                //    Log(LogType.Debug, "Dumping string list [" + prefix_ + name + "]");
+                //    uint index = 0;
+                //    foreach (var row in (List<string>)value)
+                //    {
+                //        System.Console.WriteLine(prefix_ + name + "." + index++ + "===" + row);
+                //    }
+                //}
                 else if (property.PropertyType == typeof(List<SimpleArtist>) ||
                     property.PropertyType == typeof(List<Image>))
                 {
+                    Log(LogType.Debug, "Dumping object list [" + prefix_ + name + "]");
                     uint index = 0;
                     foreach (var row in (IEnumerable)value)
                     {
@@ -175,6 +180,7 @@ namespace rainify.Console
                 }
                 else
                 {
+                    Log(LogType.Debug, "Dumping property [" + prefix_ + name + "]");
                     System.Console.WriteLine(prefix_ + name + "===" + value);
                 }
             }

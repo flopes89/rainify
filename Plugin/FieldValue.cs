@@ -8,11 +8,11 @@
         /// <summary>
         /// String value
         /// </summary>
-        public string StringValue { get; set; } = string.Empty;
+        public string StringValue;
 
         /// <summary>
         /// Double value
         /// </summary>
-        public double DoubleValue { get; set; } = 0;
+        public double DoubleValue;
     }
 }

@@ -5,9 +5,8 @@ using SpotifyAPI.Web.Models;
 using System;
 using System.Diagnostics;
 using System.Threading;
-using static Rainmeter.Api;
 
-namespace rainify.Console
+namespace Console
 {
     /// <summary>
     /// Facade to make talking with the Spotify Web API a bit easier
