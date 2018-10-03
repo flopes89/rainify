@@ -3,7 +3,9 @@ using SpotifyAPI.Web;
 using SpotifyAPI.Web.Auth;
 using SpotifyAPI.Web.Models;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using static Rainmeter.Api;
 
 namespace rainify.Plugin
@@ -35,10 +37,10 @@ namespace rainify.Plugin
         }
 
         /// <summary>
-        /// <see cref="Plugin.Reload(IntPtr, IntPtr, ref double)"/>
+        /// <see cref="Plugin.Reload"/>
         /// </summary>
-        /// <param name="api_"><see cref="Plugin.Reload(IntPtr, IntPtr, ref double)"/></param>
-        /// <param name="max_"><see cref="Plugin.Reload(IntPtr, IntPtr, ref double)"/></param>
+        /// <param name="api_"><see cref="Plugin.Reload"/></param>
+        /// <param name="max_"><see cref="Plugin.Reload"/></param>
         internal virtual void Reload(Api api_, ref double max_)
         {
         }
@@ -51,18 +53,18 @@ namespace rainify.Plugin
         }
 
         /// <summary>
-        /// <see cref="Plugin.Update(IntPtr)"/>
+        /// <see cref="Plugin.Update"/>
         /// </summary>
-        /// <returns><see cref="Plugin.Update(IntPtr)"/></returns>
+        /// <returns><see cref="Plugin.Update"/></returns>
         internal virtual double Update()
         {
             return 0.0;
         }
 
         /// <summary>
-        /// <see cref="Plugin.GetString(IntPtr)"/>
+        /// <see cref="Plugin.GetString"/>
         /// </summary>
-        /// <returns><see cref="Plugin.GetString(IntPtr)"/></returns>
+        /// <returns><see cref="Plugin.GetString"/></returns>
         internal virtual string GetString()
         {
             return string.Empty;
@@ -70,7 +72,8 @@ namespace rainify.Plugin
     }
 
     /// <summary>
-    /// The parent that holds all fields returned by the SpotifyApi
+    /// The parent that holds the current playback context returned by the SpotifyApi
+    /// And handles refreshing access tokens when necessary
     /// Fields are accessed by child measures by the field name
     /// </summary>
     class ParentMeasure : BaseMeasure
@@ -78,7 +81,7 @@ namespace rainify.Plugin
         /// <summary>
         /// List of all parent measures is used by the child measures to find their parent
         /// </summary>
-        internal static IList<ParentMeasure> Parents = new List<ParentMeasure>();
+        internal static IList<ParentMeasure> Parents { get; private set; } = new List<ParentMeasure>();
 
         /// <summary>
         /// Current playback context returned from the Spotify Web API
@@ -89,29 +92,29 @@ namespace rainify.Plugin
         /// Name of the parent measure (compared with the ParentName in a child measure to
         /// find the correct parent measure)
         /// </summary>
-        internal string Name { get; set; }
+        internal string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// Skin of the parent measure (compared with the skin of a child measure to
         /// find the correct parent measure)
         /// </summary>
-        internal IntPtr Skin { get; set; }
+        internal IntPtr Skin { get; set; } = IntPtr.Zero;
 
         /// <summary>
         /// Spotify Client ID
         /// </summary>
-        string _clientId { get; set; }
+        string _clientId { get; set; } = string.Empty;
 
         /// <summary>
         /// Spotify Client Secret
         /// </summary>
-        string _clientSecret { get; set; }
+        string _clientSecret { get; set; } = string.Empty;
 
         /// <summary>
         /// Refresh Token for Spotify API
         /// </summary>
-        string _refreshToken { get; set; }
-        
+        string _refreshToken { get; set; } = string.Empty;
+
         /// <summary>
         /// Access Token for Spotify API
         /// </summary>
@@ -126,10 +129,10 @@ namespace rainify.Plugin
         }
 
         /// <summary>
-        /// <see cref="BaseMeasure.Reload(Api, ref double)"/>
+        /// <see cref="BaseMeasure.Reload"/>
         /// </summary>
-        /// <param name="api_"><see cref="BaseMeasure.Reload(Api, ref double)"/></param>
-        /// <param name="max_"><see cref="BaseMeasure.Reload(Api, ref double)"/></param>
+        /// <param name="api_"><see cref="BaseMeasure.Reload"/></param>
+        /// <param name="max_"><see cref="BaseMeasure.Reload"/></param>
         internal override void Reload(Api api_, ref double max_)
         {
             base.Reload(api_, ref max_);
@@ -151,8 +154,9 @@ namespace rainify.Plugin
                 return;
             }
 
-            if (_accessToken.IsExpired())
+            if (_accessToken == null || _accessToken.IsExpired())
             {
+                _log(LogType.Debug, "Access Token is expired or hasn't been generated yet. Using refreshToken setting to create a new one");
                 var auth = new AuthorizationCodeAuth(_clientId, _clientSecret, string.Empty, string.Empty);
                 var refresh = auth.RefreshToken(_refreshToken);
 
@@ -162,6 +166,7 @@ namespace rainify.Plugin
                     return;
                 }
 
+                _log(LogType.Debug, "Got a new access token, resuming reloading measure");
                 _accessToken = refresh.Result;
             }
 
@@ -221,10 +226,10 @@ namespace rainify.Plugin
         }
 
         /// <summary>
-        /// <see cref="BaseMeasure.Reload(Api, ref double)"/>
+        /// <see cref="BaseMeasure.Reload"/>
         /// </summary>
-        /// <param name="api_"><see cref="BaseMeasure.Reload(Api, ref double)"/></param>
-        /// <param name="max_"><see cref="BaseMeasure.Reload(Api, ref double)"/></param>
+        /// <param name="api_"><see cref="BaseMeasure.Reload"/></param>
+        /// <param name="max_"><see cref="BaseMeasure.Reload"/></param>
         internal override void Reload(Api api_, ref double max_)
         {
             base.Reload(api_, ref max_);
@@ -297,17 +302,47 @@ namespace rainify.Plugin
         string GetFieldValue(string property_)
         {
             object currentObject = _parentMeasure.Playback;
+            PropertyInfo lastProp = null;
 
             foreach (var propName in property_.Split('.'))
             {
-                var prop = currentObject.GetType().GetProperty(propName);
+                var nextProp = currentObject.GetType().GetProperty(propName);
 
-                if (prop == null)
+                // nextProp will return null for dictionary entries or list indexes
+                if (nextProp == null)
                 {
-                    return $"Unknown property [{propName}]";
+                    // To access dictionaries or lists, a previous prop must exist
+                    if (lastProp == null)
+                    {
+                        return $"Cannot access [{property_}]: Path leads to nothing for [{propName}]";
+                    }
+                    
+                    if (typeof(IList).IsAssignableFrom(lastProp.PropertyType))
+                    {
+                        if (int.TryParse(propName, out int listIndex))
+                        {
+                            currentObject = ((IList)currentObject)[listIndex];
+                            lastProp = null;
+                            continue;
+                        }
+                        else
+                        {
+                            return $"Cannot access index [{listIndex}] on property [{propName}]: Not an integer!";
+                        }
+                    }
+
+                    if (typeof(IDictionary).IsAssignableFrom(lastProp.PropertyType))
+                    {
+                        currentObject = ((IDictionary)currentObject)[propName];
+                        lastProp = null;
+                        continue;
+                    }
+
+                    return $"Property [{propName}] doesn't exist";
                 }
 
-                currentObject = prop.GetValue(currentObject);
+                currentObject = nextProp.GetValue(currentObject);
+                lastProp = nextProp;
             }
 
             return currentObject.ToString();
