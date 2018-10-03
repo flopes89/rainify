@@ -1,41 +1,35 @@
 ﻿using Rainmeter;
+using SpotifyAPI.Web;
+using SpotifyAPI.Web.Auth;
+using SpotifyAPI.Web.Models;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Text.RegularExpressions;
 using static Rainmeter.Api;
 
 namespace rainify.Plugin
 {
     /// <summary>
+    /// Log delegate to use when logging messages
+    /// </summary>
+    /// <param name="type_">Message type</param>
+    /// <param name="message_">Log message</param>
+    delegate void Log(LogType type_, string message_);
+
+    /// <summary>
     /// Base class for parents and child measures
     /// </summary>
-    internal class BaseMeasure
+    class BaseMeasure
     {
-        /// <summary>
-        /// Log delegate to use when logging messages
-        /// </summary>
-        /// <param name="type_">Message type</param>
-        /// <param name="message_">Log message</param>
-        internal delegate void Log(LogType type_, string message_);
-
-        /// <summary>
-        /// The field that is used by the measure
-        /// Fields itself are held by the ParentMeasure in a dictionary
-        /// </summary>
-        internal string Field { get; set; } = string.Empty;
-
         /// <summary>
         /// Message function to use for logging
         /// </summary>
-        internal protected Log _log { get; set; }
+        protected Log _log { get; set; }
 
         /// <summary>
         /// Base Measure instance
         /// </summary>
         /// <param name="log_">Function to use for logging</param>
-        internal BaseMeasure(Log log_)
+        protected BaseMeasure(Log log_)
         {
             _log = log_;
         }
@@ -47,7 +41,6 @@ namespace rainify.Plugin
         /// <param name="max_"><see cref="Plugin.Reload(IntPtr, IntPtr, ref double)"/></param>
         internal virtual void Reload(Api api_, ref double max_)
         {
-            Field = api_.ReadString("Field", string.Empty);
         }
 
         /// <summary>
@@ -72,7 +65,7 @@ namespace rainify.Plugin
         /// <returns><see cref="Plugin.GetString(IntPtr)"/></returns>
         internal virtual string GetString()
         {
-            return "ParentMeasure doesn't return anything. Use child measures to access fields";
+            return string.Empty;
         }
     }
 
@@ -80,7 +73,7 @@ namespace rainify.Plugin
     /// The parent that holds all fields returned by the SpotifyApi
     /// Fields are accessed by child measures by the field name
     /// </summary>
-    internal class ParentMeasure : BaseMeasure
+    class ParentMeasure : BaseMeasure
     {
         /// <summary>
         /// List of all parent measures is used by the child measures to find their parent
@@ -88,9 +81,9 @@ namespace rainify.Plugin
         internal static IList<ParentMeasure> Parents = new List<ParentMeasure>();
 
         /// <summary>
-        /// The fields returned by the SpotifyApi that can be accessed
+        /// Current playback context returned from the Spotify Web API
         /// </summary>
-        internal IDictionary<string, FieldValue> FieldValues = new Dictionary<string, FieldValue>();
+        internal PlaybackContext Playback { get; private set; }
 
         /// <summary>
         /// Name of the parent measure (compared with the ParentName in a child measure to
@@ -118,11 +111,11 @@ namespace rainify.Plugin
         /// Refresh Token for Spotify API
         /// </summary>
         string _refreshToken { get; set; }
-
+        
         /// <summary>
-        /// Path to the rainify console
+        /// Access Token for Spotify API
         /// </summary>
-        string _consolePath { get; set; }
+        Token _accessToken { get; set; }
 
         /// <summary>
         /// Add this parent measure to the list of parent measures
@@ -144,12 +137,11 @@ namespace rainify.Plugin
             Name = api_.GetMeasureName();
             Skin = api_.GetSkin();
 
-            _log(LogType.Notice, "Reloading parent measure [" + Name + "] in Skin [" + Skin + "]");
+            _log(LogType.Debug, "Reloading parent measure [" + Name + "] in Skin [" + Skin + "]");
 
             _clientId = api_.ReadString("ClientId", string.Empty);
             _clientSecret = api_.ReadString("ClientSecret", string.Empty);
             _refreshToken = api_.ReadString("RefreshToken", string.Empty);
-            _consolePath = api_.ReadPath("ConsolePath", string.Empty);
 
             if (string.IsNullOrWhiteSpace(_clientId) ||
                 string.IsNullOrWhiteSpace(_clientSecret) ||
@@ -159,65 +151,28 @@ namespace rainify.Plugin
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(_consolePath))
+            if (_accessToken.IsExpired())
             {
-                _log(LogType.Error, "ConsolePath must be set");
-                return;
-            }
+                var auth = new AuthorizationCodeAuth(_clientId, _clientSecret, string.Empty, string.Empty);
+                var refresh = auth.RefreshToken(_refreshToken);
 
-            if (!_consolePath.EndsWith("Console.exe", StringComparison.InvariantCultureIgnoreCase))
-            {
-                _log(LogType.Error, "ConsolePath must point to Console.exe");
-                return;
-            }
-
-            var consoleExe = new FileInfo(_consolePath);
-
-            _log(LogType.Debug, "Executing console exe at [" + consoleExe.FullName + "]");
-            
-            var console = new Process
-            {
-                StartInfo = new ProcessStartInfo
+                if (!refresh.Wait(10000))
                 {
-                    FileName = consoleExe.FullName,
-                    Arguments = string.Format("status -i {0} -s {1} -t {2}", _clientId, _clientSecret, _refreshToken),
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true
+                    _log(LogType.Error, "Timeout when refreshing token");
+                    return;
                 }
+
+                _accessToken = refresh.Result;
+            }
+
+            var api = new SpotifyWebAPI
+            {
+                AccessToken = _accessToken.AccessToken,
+                UseAuth = true,
+                TokenType = _accessToken.TokenType,
             };
 
-            console.Start();
-
-            var error = console.StandardError.ReadToEnd();
-            if (!string.IsNullOrWhiteSpace(error))
-            {
-                _log(LogType.Error, "Dumping rainifyConsole errors:\r\n" + error);
-            }
-
-            var output = console.StandardOutput.ReadToEnd();
-            console.WaitForExit();
-
-            var matches = Regex.Matches(output, "^(?<Name>.+)===(?<Value>.+)$", RegexOptions.Multiline);
-            FieldValues = new Dictionary<string, FieldValue>();
-            foreach (Match match in matches)
-            {
-                var name = match.Groups["Name"].Value;
-                var value = match.Groups["Value"].Value;
-
-                var fieldValue = new FieldValue
-                {
-                    StringValue = value
-                };
-
-                var doubleValue = 0.0;
-                double.TryParse(value, out doubleValue);
-                fieldValue.DoubleValue = doubleValue;
-
-                _log(LogType.Debug, "Adding new FieldValue [" + name + "]");
-                FieldValues.Add(name, fieldValue);
-            }
+            Playback = api.GetPlayback();
 
             _log(LogType.Debug, "Reloading done");
         }
@@ -243,8 +198,14 @@ namespace rainify.Plugin
     /// <summary>
     /// The child measure that will return the value of a single field saved in the associated parent measure
     /// </summary>
-    internal class ChildMeasure : BaseMeasure
+    class ChildMeasure : BaseMeasure
     {
+        /// <summary>
+        /// The field that is used by the measure
+        /// Fields itself are held by the ParentMeasure in a dictionary
+        /// </summary>
+        string _field { get; set; } = string.Empty;
+
         /// <summary>
         /// The parent measure of this child
         /// </summary>
@@ -267,7 +228,9 @@ namespace rainify.Plugin
         internal override void Reload(Api api_, ref double max_)
         {
             base.Reload(api_, ref max_);
-            
+
+            _field = api_.ReadString("Field", string.Empty);
+
             var parentName = api_.ReadString("ParentName", string.Empty);
             var skin = api_.GetSkin();
 
@@ -296,19 +259,19 @@ namespace rainify.Plugin
         /// <returns>Double value of the field</returns>
         internal override double Update()
         {
-            if (_parentMeasure != null)
+            if (_parentMeasure == null)
             {
-                if (_parentMeasure.FieldValues.ContainsKey(Field))
-                {
-                    var value = _parentMeasure.FieldValues[Field];
-                    return value.DoubleValue;
-                }
-
-                _log(LogType.Warning, "Access to unknown Field [" + Field + "]");
-                return 0;
+                return base.Update();
             }
 
-            return base.Update();
+            var stringValue = GetFieldValue(_field);
+            if (double.TryParse(stringValue, out double value))
+            {
+                return value;
+            }
+            
+            return 0;
+
         }
 
         /// <summary>
@@ -317,19 +280,37 @@ namespace rainify.Plugin
         /// <returns>String value of the field</returns>
         internal override string GetString()
         {
-            if (_parentMeasure != null)
+            if (_parentMeasure == null)
             {
-                if (_parentMeasure.FieldValues.ContainsKey(Field))
-                {
-                    var value = _parentMeasure.FieldValues[Field];
-                    return value.StringValue;
-                }
-
-                _log(LogType.Warning, "Access to unknown Field [" + Field + "]");
-                return "Access to unknown Field [" + Field + "]";
+                return base.GetString();
             }
 
-            return base.GetString();
+            return GetFieldValue(_field);
+        }
+
+        /// <summary>
+        /// Gets the string value of the given property "path" (e.g. Item.Artist.Name) of the
+        /// parents measures Playback context property
+        /// </summary>
+        /// <param name="property_">The property path</param>
+        /// <returns>String value of that property</returns>
+        string GetFieldValue(string property_)
+        {
+            object currentObject = _parentMeasure.Playback;
+
+            foreach (var propName in property_.Split('.'))
+            {
+                var prop = currentObject.GetType().GetProperty(propName);
+
+                if (prop == null)
+                {
+                    return $"Unknown property [{propName}]";
+                }
+
+                currentObject = prop.GetValue(currentObject);
+            }
+
+            return currentObject.ToString();
         }
     }
 }
