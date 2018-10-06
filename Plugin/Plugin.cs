@@ -28,7 +28,6 @@ namespace rainify.Plugin
 
             try
             {
-                _api.Log(LogType.Debug, "Initializing plugin");
                 string parent = _api.ReadString("ParentName", string.Empty);
                 BaseMeasure measure;
 
@@ -48,10 +47,6 @@ namespace rainify.Plugin
                 _api.Log(LogType.Error, ex.Message);
                 _api.Log(LogType.Error, ex.StackTrace);
             }
-            finally
-            {
-                _api.Log(LogType.Debug, "Initializing plugin done");
-            }
         }
 
         /// <summary>
@@ -67,7 +62,6 @@ namespace rainify.Plugin
         {
             try
             {
-                _api.Log(LogType.Debug, "Reloading plugin");
                 BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data_).Target;
                 measure.Reload(rm_, ref maxValue_);
             }
@@ -75,10 +69,6 @@ namespace rainify.Plugin
             {
                 _api.Log(LogType.Error, ex.Message);
                 _api.Log(LogType.Error, ex.StackTrace);
-            }
-            finally
-            {
-                _api.Log(LogType.Debug, "Reloading plugin done");
             }
         }
 
@@ -93,7 +83,6 @@ namespace rainify.Plugin
         {
             try
             {
-                _api.Log(LogType.Debug, "Updating plugin");
                 BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data_).Target;
                 return measure.Update();
             }
@@ -102,10 +91,6 @@ namespace rainify.Plugin
                 _api.Log(LogType.Error, ex.Message);
                 _api.Log(LogType.Error, ex.StackTrace);
                 return 0;
-            }
-            finally
-            {
-                _api.Log(LogType.Debug, "Updating plugin done");
             }
         }
 
@@ -125,7 +110,6 @@ namespace rainify.Plugin
         {
             try
             {
-                _api.Log(LogType.Debug, "GetString called");
                 BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data_).Target;
                 return Marshal.StringToHGlobalUni(measure.GetString());
             }
@@ -134,10 +118,6 @@ namespace rainify.Plugin
                 _api.Log(LogType.Error, ex.Message);
                 _api.Log(LogType.Error, ex.StackTrace);
                 return Marshal.StringToHGlobalUni(string.Empty);
-            }
-            finally
-            {
-                _api.Log(LogType.Debug, "GetString done");
             }
         }
 
@@ -150,7 +130,6 @@ namespace rainify.Plugin
         {
             try
             {
-                _api.Log(LogType.Debug, "Finalizing plugin");
                 BaseMeasure measure = (BaseMeasure)GCHandle.FromIntPtr(data_).Target;
                 measure.Dispose();
                 GCHandle.FromIntPtr(data_).Free();
@@ -159,10 +138,6 @@ namespace rainify.Plugin
             {
                 _api.Log(LogType.Error, ex.Message);
                 _api.Log(LogType.Error, ex.StackTrace);
-            }
-            finally
-            {
-                _api.Log(LogType.Debug, "Finalizing plugin done");
             }
         }
     }

@@ -139,9 +139,7 @@ namespace rainify.Plugin
 
             Name = api_.GetMeasureName();
             Skin = api_.GetSkin();
-
-            _log(LogType.Debug, "Reloading parent measure [" + Name + "] in Skin [" + Skin + "]");
-
+            
             _clientId = api_.ReadString("ClientId", string.Empty);
             _clientSecret = api_.ReadString("ClientSecret", string.Empty);
             _refreshToken = api_.ReadString("RefreshToken", string.Empty);
@@ -156,7 +154,6 @@ namespace rainify.Plugin
 
             if (_accessToken == null || _accessToken.IsExpired())
             {
-                _log(LogType.Debug, "Access Token is expired or hasn't been generated yet. Using refreshToken setting to create a new one");
                 var auth = new AuthorizationCodeAuth(_clientId, _clientSecret, string.Empty, string.Empty);
                 var refresh = auth.RefreshToken(_refreshToken);
 
@@ -165,8 +162,7 @@ namespace rainify.Plugin
                     _log(LogType.Error, "Timeout when refreshing token");
                     return;
                 }
-
-                _log(LogType.Debug, "Got a new access token, resuming reloading measure");
+                
                 _accessToken = refresh.Result;
             }
 
@@ -178,8 +174,6 @@ namespace rainify.Plugin
             };
 
             Playback = api.GetPlayback();
-
-            _log(LogType.Debug, "Reloading done");
         }
 
         /// <summary>
@@ -238,24 +232,20 @@ namespace rainify.Plugin
 
             var parentName = api_.ReadString("ParentName", string.Empty);
             var skin = api_.GetSkin();
-
-            _log(LogType.Debug, "Reloading child measure [" + api_.GetMeasureName() + "] in Skin [" + skin + "]");
+            
             _parentMeasure = null;
             foreach (ParentMeasure parent in ParentMeasure.Parents)
             {
                 if (parent.Skin.Equals(skin) && parent.Name.Equals(parentName))
                 {
-                    _log(LogType.Debug, "Found parent measure for [" + api_.GetMeasureName() + "] in Skin [" + parent.Skin + "]: [" + parentName + "]");
                     _parentMeasure = parent;
                 }
             }
 
             if (_parentMeasure == null)
             {
-                _log(LogType.Error, "Parent [" + parentName + "] not found in Skin [" + skin + "]");
+                _log(LogType.Error, $"Parent [{parentName}] not found in Skin [{skin}]");
             }
-
-            _log(LogType.Debug, "Reloading done");
         }
 
         /// <summary>

@@ -110,4 +110,8 @@
     </BootstrapperPackage>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="CleanOutput" AfterTargets="Clean">
+    <RemoveDir Directories="$(TargetDir)"/>
+    <RemoveDir Directories="$(ProjectDir)/$(BaseIntermediateOutputPath)"/>
+  </Target>
 </Project>
