@@ -333,3 +333,5 @@ ASALocalRun/
 ## Custom additions
 .env
 !API/x64/
+*.rmskin
+*.zip

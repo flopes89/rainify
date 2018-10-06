@@ -15,5 +15,5 @@ status of your Spotify account.
 - Execute `rainifyConsole.exe authorize -c <clientId> -s <clientSecret>`
 	- Optionally add  `-p <port>` in case your port `:80` is blocked by something
 - Install the `rmskin` into Rainmeter
-- Paste the configuration output of the rainifyConsole into the `base.ini` Skin at the marked location
+- Paste the configuration output of the rainifyConsole into the `raininfy-base.ini` Skin at the marked location
 - (Adjust and) reload the skin
