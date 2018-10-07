@@ -152,6 +152,15 @@ namespace rainify.Plugin
                 return;
             }
 
+            Update();
+        }
+
+        /// <summary>
+        /// <see cref="BaseMeasure.Update"/>
+        /// </summary>
+        /// <returns><see cref="BaseMeasure.Update"/></returns>
+        internal override double Update()
+        {
             if (_accessToken == null || _accessToken.IsExpired())
             {
                 var auth = new AuthorizationCodeAuth(_clientId, _clientSecret, string.Empty, string.Empty);
@@ -160,9 +169,9 @@ namespace rainify.Plugin
                 if (!refresh.Wait(10000))
                 {
                     _log(LogType.Error, "Timeout when refreshing token");
-                    return;
+                    return 0;
                 }
-                
+
                 _accessToken = refresh.Result;
             }
 
@@ -174,14 +183,7 @@ namespace rainify.Plugin
             };
 
             Playback = api.GetPlayback();
-        }
 
-        /// <summary>
-        /// <see cref="BaseMeasure.Update"/>
-        /// </summary>
-        /// <returns><see cref="BaseMeasure.Update"/></returns>
-        internal override double Update()
-        {
             return base.Update();
         }
 
