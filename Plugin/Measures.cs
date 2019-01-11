@@ -296,6 +296,11 @@ namespace rainify.Plugin
             object currentObject = _parentMeasure.Playback;
             PropertyInfo lastProp = null;
 
+            if (currentObject == null)
+            {
+                return string.Empty;
+            }
+
             foreach (var propName in property_.Split('.'))
             {
                 var nextProp = currentObject.GetType().GetProperty(propName);
