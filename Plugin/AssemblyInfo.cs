@@ -3,7 +3,7 @@
 [assembly: AssemblyTitle("rainify Plugin")]
 [assembly: AssemblyDescription("Rainmeter Spotify Plugin")]
 [assembly: AssemblyCopyright("© 2018 - Florian Peschka")]
-[assembly: AssemblyVersion("1.0.1.*")]
+[assembly: AssemblyVersion("1.0.2.*")]
 
 // Do not change the entries below!
 #if X64

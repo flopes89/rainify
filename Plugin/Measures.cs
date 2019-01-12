@@ -296,13 +296,14 @@ namespace rainify.Plugin
             object currentObject = _parentMeasure.Playback;
             PropertyInfo lastProp = null;
 
-            if (currentObject == null)
-            {
-                return string.Empty;
-            }
-
             foreach (var propName in property_.Split('.'))
             {
+                if (currentObject == null)
+                {
+                    _log(LogType.Error, $"Path [{property_}] leads to null object");
+                    return string.Empty;
+                }
+
                 var nextProp = currentObject.GetType().GetProperty(propName);
 
                 // nextProp will return null for dictionary entries or list indexes
@@ -311,7 +312,8 @@ namespace rainify.Plugin
                     // To access dictionaries or lists, a previous prop must exist
                     if (lastProp == null)
                     {
-                        return $"Cannot access [{property_}]: Path leads to nothing for [{propName}]";
+                        _log(LogType.Error, $"Cannot access [{property_}]: Path leads to nothing for [{propName}]");
+                        return string.Empty;
                     }
                     
                     if (typeof(IList).IsAssignableFrom(lastProp.PropertyType))
@@ -324,7 +326,8 @@ namespace rainify.Plugin
                         }
                         else
                         {
-                            return $"Cannot access index [{listIndex}] on property [{propName}]: Not an integer!";
+                            _log(LogType.Error, $"Cannot access index [{listIndex}] on property [{propName}]: Not an integer!");
+                            return string.Empty;
                         }
                     }
 
@@ -335,7 +338,8 @@ namespace rainify.Plugin
                         continue;
                     }
 
-                    return $"Property [{propName}] doesn't exist";
+                    _log(LogType.Error, $"Property [{propName}] doesn't exist");
+                    return string.Empty;
                 }
 
                 currentObject = nextProp.GetValue(currentObject);
